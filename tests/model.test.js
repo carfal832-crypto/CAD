@@ -1,0 +1,14 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {exportSTL,validateProject} from '../src/model.js';
+import {STLLoader} from 'three/addons/loaders/STLLoader.js';
+const cube={id:'a',type:'box',w:20,d:20,h:20,x:0,y:0,z:0,angle:0,color:'#ef916b'};
+function read(items){const data=exportSTL(items);assert.equal(data.byteLength,84+data.getUint32(80,true)*50);return new STLLoader().parse(data.buffer);}
+function volume(g){const p=g.getAttribute('position');let v=0;for(let i=0;i<p.count;i+=3){const a=[p.getX(i),p.getY(i),p.getZ(i)],b=[p.getX(i+1),p.getY(i+1),p.getZ(i+1)],c=[p.getX(i+2),p.getY(i+2),p.getZ(i+2)];v+=(a[0]*(b[1]*c[2]-b[2]*c[1])+a[1]*(b[2]*c[0]-b[0]*c[2])+a[2]*(b[0]*c[1]-b[1]*c[0]))/6;}return Math.abs(v);}
+test('STL preserves millimeter dimensions and sits on the plate',()=>{const g=read([cube]);g.computeBoundingBox();assert.deepEqual(g.boundingBox.min.toArray(),[-10,-10,0]);assert.deepEqual(g.boundingBox.max.toArray(),[10,10,20]);assert.ok(Math.abs(volume(g)-8000)<.01);});
+test('overlapping cubes are united, eliminating the interior overlap',()=>{const g=read([cube,{...cube,id:'b',x:10}]);assert.ok(Math.abs(volume(g)-12000)<.1);});
+test('all supported primitives export finite triangles',()=>{for(const type of ['box','cylinder','sphere']){const g=read([{...cube,type}]);assert.ok(g.getAttribute('position').count>0);assert.ok([...g.getAttribute('position').array].every(Number.isFinite));assert.ok(volume(g)>0);}});
+test('empty exports and malformed projects are rejected',()=>{assert.throws(()=>exportSTL([]));for(const update of [{w:-10},{x:Infinity},{type:'unknown'},{color:'url(x)'},{z:-2}])assert.throws(()=>validateProject({version:1,items:[{...cube,...update}]}));assert.throws(()=>validateProject({version:1,items:[cube,cube]}));assert.deepEqual(validateProject({version:1,items:[cube]}),[cube]);});
+
+test('rotating on X and Y keeps the bottom on the plate',async()=>{const {boundsOf}=await import('../src/model.js');const i={...cube,w:10,d:20,h:40,rx:90,ry:0};const b=boundsOf(i);assert.ok(Math.abs(b.min.z)<1e-6);assert.ok(Math.abs(b.max.z-20)<1e-6);const g=read([i]);assert.ok(Math.abs(volume(g)-8000)<.1);});
+test('combining, moving and rotating preserves volume and project roundtrip',async()=>{const {combine,boundsOf,stackOn}=await import('../src/model.js');const a={...cube},b={...cube,id:'b',x:10};const joined=combine([a,b],'joined');assert.ok(Math.abs(volume(read([joined]))-12000)<.1);joined.rx=90;joined.ry=15;joined.x=30;assert.ok(Math.abs(volume(read([joined]))-12000)<.1);assert.ok(Math.abs(boundsOf(joined).min.z)<1e-5);assert.equal(validateProject(JSON.parse(JSON.stringify({version:1,items:[joined]})))[0].children.length,2);const top={...cube,id:'top'};stackOn(joined,top);assert.equal(top.x,30);assert.ok(Math.abs(top.z-(boundsOf(joined).max.z-.5))<1e-6);});
