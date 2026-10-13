@@ -4,7 +4,7 @@ test('build, edit, undo, persist, save/open and export STL',async({page})=>{
   const errors=[];page.on('pageerror',err=>errors.push(err.message));
   await page.goto('/');await page.getByRole('button',{name:'Kub Bygg en stadig bas'}).click();
   await expect(page.locator('#count')).toHaveText('1 form');
-  await page.locator('[data-field="w"]').fill('42');await page.locator('[data-field="w"]').press('Tab');
+  await page.locator('.measurements summary').click();await page.locator('[data-field="w"]').fill('42');await page.locator('[data-field="w"]').press('Tab');
   await page.getByRole('button',{name:'Kopiera'}).click();await expect(page.locator('#count')).toHaveText('2 former');
   await page.getByRole('button',{name:'Ångra',exact:true}).click();await expect(page.locator('#count')).toHaveText('1 form');
   await page.getByRole('button',{name:'Gör om',exact:true}).click();await expect(page.locator('#count')).toHaveText('2 former');
@@ -30,7 +30,7 @@ test('dragging on the plate changes position and can be undone',async({page})=>{
 
 test('place-on workflow, unite, rotate, undo and reload',async({page})=>{
  const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto('/');
- await page.locator('[data-add="box"]').click();await page.locator('[data-field="h"]').fill('15');await page.locator('[data-field="h"]').press('Tab');
+ await page.locator('[data-add="box"]').click();await page.locator('.measurements summary').click();await page.locator('[data-field="h"]').fill('15');await page.locator('[data-field="h"]').press('Tab');
  await page.locator('[data-add="cylinder"]').click();expect(await page.locator('[data-field="x"]').inputValue()).not.toBe('0');
  await page.locator('#stack').click();await expect(page.locator('#selection-help')).toContainText('underst');await page.locator('.object').first().click();await expect(page.locator('[data-field="z"]')).toHaveValue('14.5');
  await page.locator('#combine').click();await expect(page.locator('#count')).toHaveText('1 form');await expect(page.locator('#shape-name')).toHaveText('Förenad form');
@@ -57,4 +57,20 @@ test('standalone download works without network: rotate, stack, unite and export
  await page.locator('[data-add="box"]').click();await page.locator('[data-add="cylinder"]').click();
  await page.locator('[data-turn="ry"]').click();await page.locator('#stack').click();await page.locator('.object').first().click();await page.locator('#combine').click();
  await expect(page.locator('#shape-name')).toHaveText('Förenad form');await page.locator('#print').click();const pending=page.waitForEvent('download');await page.locator('#download-stl').click();const d=await pending;const bytes=await fs.readFile(await d.path());expect(bytes.length).toBe(84+bytes.readUInt32LE(80)*50);expect(errors).toEqual([]);
+});
+
+test('drag a new block from the library onto the plate without typing',async({page})=>{
+ await page.goto('/');await page.locator('#top-view').click();await page.waitForTimeout(300);
+ const c=await page.locator('canvas').boundingBox(),button=await page.locator('[data-add="box"]').boundingBox();
+ await page.mouse.move(button.x+button.width/2,button.y+button.height/2);await page.mouse.down();await page.mouse.move(c.x+c.width/2+95,c.y+c.height/2+30,{steps:15});await page.mouse.up();
+ await expect(page.locator('#count')).toHaveText('1 form');expect(Number(await page.locator('[data-field="x"]').inputValue())).toBeGreaterThan(15);await expect(page.locator('[data-field="w"]')).not.toBeVisible();
+ await page.locator('#undo').click();await expect(page.locator('#count')).toHaveText('0 former');
+});
+
+test('lift a block using the blue arrow without typing',async({page})=>{
+ await page.goto('/');await page.locator('[data-add="box"]').click();await page.waitForTimeout(300);
+ const c=await page.locator('canvas').boundingBox(),cx=c.x+c.width/2,cy=c.y+c.height/2;
+ await page.mouse.move(cx,cy-c.height*.095);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx,cy-c.height*.17,{steps:12});await page.mouse.up();
+ expect(Number(await page.locator('[data-field="z"]').inputValue())).toBeGreaterThan(5);
+ await page.locator('#undo').click();await page.locator('.object').click();await expect(page.locator('[data-field="z"]')).toHaveValue('0');
 });
