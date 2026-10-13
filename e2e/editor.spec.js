@@ -22,7 +22,7 @@ test('mobile layout fits and invalid imports preserve project',async({page})=>{
 
 test('dragging on the plate changes position and can be undone',async({page})=>{
  await page.goto('/');await page.locator('[data-add="box"]').click();await page.locator('#top-view').click();await page.waitForTimeout(300);
- const canvas=await page.locator('canvas').boundingBox();const x=canvas.x+canvas.width/2,y=canvas.y+canvas.height/2;
+ const canvas=await page.locator('canvas').boundingBox();const x=canvas.x+canvas.width/2-25,y=canvas.y+canvas.height/2+25;
  await page.mouse.move(x,y);await page.mouse.down();await page.mouse.move(x+65,y+20,{steps:8});await page.mouse.up();
  const position=await page.locator('[data-field="x"]').inputValue();expect(Number(position)).toBeGreaterThan(0);
  await page.getByRole('button',{name:'Ångra',exact:true}).click();await page.locator('.object').click();await expect(page.locator('[data-field="x"]')).toHaveValue('0');
@@ -43,12 +43,12 @@ test('place-on workflow, unite, rotate, undo and reload',async({page})=>{
 
 test('rotation ring changes the actual model and undo restores it',async({page})=>{
  await page.goto('/');await page.locator('[data-add="box"]').click();await page.locator('#top-view').click();await page.locator('#rotate-tool').click();await page.waitForTimeout(300);
- const c=await page.locator('canvas').boundingBox(),cx=c.x+c.width/2,cy=c.y+c.height/2,r=c.height*.102;
+ let c=await page.locator('canvas').boundingBox(),cx=c.x+c.width/2,cy=c.y+c.height/2;const r=c.height*.102;
  await page.mouse.move(cx+r/Math.sqrt(2),cy+r/Math.sqrt(2));await page.waitForTimeout(100);await page.mouse.down();
  for(let step=1;step<=12;step++){const angle=Math.PI/4+step*Math.PI/24;await page.mouse.move(cx+r*Math.cos(angle),cy+r*Math.sin(angle));}
  await page.mouse.up();expect(Math.abs(Number(await page.locator('[data-field="angle"]').inputValue()))).toBeGreaterThan(30);
  await page.locator('#undo').click();await page.locator('.object').click();await expect(page.locator('[data-field="angle"]')).toHaveValue('0');
- await page.locator('#size-tool').click();await page.waitForTimeout(100);await page.mouse.move(cx+c.height*.109,cy);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx+c.height*.16,cy,{steps:10});await page.mouse.up();expect(Number(await page.locator('[data-field="w"]').inputValue())).toBeGreaterThan(35);
+ await page.locator('#size-tool').click();await page.waitForTimeout(100);c=await page.locator('canvas').boundingBox();cx=c.x+c.width/2;cy=c.y+c.height/2;await page.mouse.move(cx+c.height*.109,cy);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx+c.height*.16,cy,{steps:10});await page.mouse.up();expect(Number(await page.locator('[data-field="w"]').inputValue())).toBeGreaterThan(35);
 });
 
 test('standalone download works without network: rotate, stack, unite and export',async({page})=>{
@@ -68,9 +68,23 @@ test('drag a new block from the library onto the plate without typing',async({pa
 });
 
 test('lift a block using the blue arrow without typing',async({page})=>{
- await page.goto('/');await page.locator('[data-add="box"]').click();await page.waitForTimeout(300);
- const c=await page.locator('canvas').boundingBox(),cx=c.x+c.width/2,cy=c.y+c.height/2;
+ await page.goto('/');await page.locator('[data-add="box"]').click();await page.locator('#move-tool').click();await page.waitForTimeout(300);
+ let c=await page.locator('canvas').boundingBox(),cx=c.x+c.width/2,cy=c.y+c.height/2;
  await page.mouse.move(cx,cy-c.height*.095);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx,cy-c.height*.17,{steps:12});await page.mouse.up();
  expect(Number(await page.locator('[data-field="z"]').inputValue())).toBeGreaterThan(5);
  await page.locator('#undo').click();await page.locator('.object').click();await expect(page.locator('[data-field="z"]')).toHaveValue('0');
+});
+
+test('size handles work immediately without choosing a tool',async({page})=>{
+ await page.goto('/');await page.locator('[data-add="box"]').click();await expect(page.locator('#size-tool')).toHaveAttribute('aria-pressed','true');
+ await page.locator('#top-view').click();await page.waitForTimeout(300);
+ let c=await page.locator('canvas').boundingBox(),cx=c.x+c.width/2,cy=c.y+c.height/2;
+ await page.mouse.move(cx+c.height*.109,cy);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx+c.height*.16,cy,{steps:10});await page.mouse.up();
+ expect(Number(await page.locator('[data-field="w"]').inputValue())).toBeGreaterThan(35);await expect(page.locator('[data-field="d"]')).toHaveValue('30');
+ await page.locator('#undo').click();await page.locator('.object').click();await page.waitForTimeout(200);
+ c=await page.locator('canvas').boundingBox();cx=c.x+c.width/2;cy=c.y+c.height/2;await page.mouse.move(cx,cy-c.height*.109);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx,cy-c.height*.16,{steps:10});await page.mouse.up();
+ expect(Number(await page.locator('[data-field="d"]').inputValue())).toBeGreaterThan(35);await expect(page.locator('[data-field="w"]')).toHaveValue('30');
+ await page.locator('#undo').click();await page.locator('.object').click();await page.locator('#reset-view').click();await page.waitForTimeout(300);c=await page.locator('canvas').boundingBox();cx=c.x+c.width/2;cy=c.y+c.height/2;
+ await page.mouse.move(cx,cy-c.height*.094);await page.waitForTimeout(100);await page.mouse.down();await page.mouse.move(cx,cy-c.height*.16,{steps:10});await page.mouse.up();
+ expect(Number(await page.locator('[data-field="h"]').inputValue())).toBeGreaterThan(35);
 });

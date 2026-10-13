@@ -21,10 +21,10 @@ npm run test:e2e
 
 Webbläsartester använder `/usr/bin/chromium`. Sätt `CHROMIUM_PATH` om Chromium finns på en annan plats.
 
-## Bygg något – version 3
+## Bygg något – version 4
 
 1. Dra ett block från vänster till den rutiga plattan. Du kan också klicka på en form; då placeras den på en ledig plats.
-2. Dra formen på plattan. Pilar visas direkt när en form är vald: dra den blå pilen för att lyfta och de andra för att flytta längs plattan. Välj **Rotera** och dra i en färgad ring, eller använd **+90°** för att tippa den. Välj **Storlek** och dra i ett fyrkantigt handtag för att ändra storleken.
+2. Dra formen på plattan. Storlekshandtagen visas direkt: dra den röda fyrkanten för bredd, den gröna för djup och den blå för höjd. Formen ändras medan du drar. Välj **Flytta** om du vill använda pilar för att flytta eller lyfta blocket. Välj **Rotera** och dra i en färgad ring, eller använd **+90°** för att tippa den. Välj **Storlek** och dra i ett fyrkantigt handtag för att ändra storleken.
 3. För att stapla: välj den översta delen, klicka **Sätt ovanpå** och klicka sedan på basen. Verktyget centrerar delen och låter den överlappa basen med 0,5 mm. Escape avbryter.
 4. Klicka **Förena** för att slå ihop valda former till en del som kan flyttas, roteras och ändras i storlek. **Ångra** återställer delarna. Separata former utan överlapp blir fortfarande separata skal i utskriftsfilen.
 5. **Välj flera** eller Shift-klick väljer flera delar. **Centrera** flyttar deras mittpunkter till den först valda delen i sidled och djupled. Två valda delar kan också staplas med **Sätt ovanpå**, där den sist valda hamnar överst.
